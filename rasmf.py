@@ -15,10 +15,10 @@ In preparation for Kodi(XBMC) to scrape the files and add to library.
 import os
 import shutil
 import re
+import logging
+import logging.handlers
 
-#media_dir = "/zdata"
 media_dir = "/tmp/rasmf"
-#in_dir = os.path.join(media_dir, "incoming", "holding")
 in_dir = os.path.join(media_dir, "incoming")
 
 movie_dir = os.path.join(media_dir, "movies")
@@ -162,8 +162,9 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
     try:
         shutil.move(source_path, target_path)
+        logger.info("Moving:{0} => {1}".format(source_path, target_path))
     except FileNotFoundError as msg:
-        print("{}: Unable to move {} to {}".format(msg, source_path, target_path))
+        logger.error("{}: Unable to move {} to {}".format(msg, source_path, target_path))
     else:
         # only remove relative incoming path if move operations successful
         remove_directory(first_relpath)
@@ -171,6 +172,22 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
 
 if __name__ == "__main__":
+    logfile = os.path.join('log', 'rasmf.log')
+
+    if not os.path.isdir('log'):
+        os.mkdir('log')
+    # Set the logger based on namespace and minimum log level
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    # Create the FileHandler with Timed Rotating logs and set it's minimum log level
+    handler = logging.handlers.TimedRotatingFileHandler(logfile, when='midnight')
+    handler.setLevel(logging.DEBUG)
+    # Create log formatter
+    formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+
     # Create the movie and tv folders should they not exist
     for d in [movie_dir, tv_dir]:
         if not os.path.exists(d):
@@ -185,6 +202,7 @@ if __name__ == "__main__":
             if file_extension in video_file_extensions:
                 # Is it a TV show
                 if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
+                    logger.debug("TV Show:{0}".format(full_filename))
                     process_tv_show_file(rootdir, full_filename, tv_dir)
 
                 # Is it a Movie
