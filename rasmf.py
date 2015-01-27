@@ -115,28 +115,29 @@ def tv_show_name_season(sname, fname):
     return sname
 
 def remove_directory(rel_dir):
-    global in_dir
-
-    del_target = os.path.join(in_dir, rel_dir)
-    if os.path.normpath(del_target) == in_dir:
-        return #exit if incoming folder
-
-    print("in_dir", in_dir)
-    print('del_target',del_target)
-
-    dir_listing = os.listdir(del_target)
-    if len(dir_listing) == 0:
-        shutil.rmtree(del_target) #remove folder if empty
-    else:
-        for rootdir, dirs, files in os.walk(del_target):
-            for full_filename in files:
-                filename, file_extension = os.path.splitext(full_filename.lower())
-                # skip known filetypes that still exist, just in case
-                if file_extension in video_file_extensions or file_extension in audio_file_extensions:
-                    return #leave directory if any known filetypes remain.
-
-    if os.path.exists(del_target):
-        shutil.rmtree(del_target) #otherwise delete the directory with unknown file types
+    pass # this currently broken
+#    global in_dir
+#
+#    del_target = os.path.join(in_dir, rel_dir)
+#    if os.path.normpath(del_target) == in_dir:
+#        return #exit if incoming folder
+#
+#    print("in_dir", in_dir)
+#    print('del_target',del_target)
+#
+#    dir_listing = os.listdir(del_target)
+#    if len(dir_listing) == 0:
+#        shutil.rmtree(del_target) #remove folder if empty
+#    else:
+#        for rootdir, dirs, files in os.walk(del_target):
+#            for full_filename in files:
+#                filename, file_extension = os.path.splitext(full_filename.lower())
+#                # skip known filetypes that still exist, just in case
+#                if file_extension in video_file_extensions or file_extension in audio_file_extensions:
+#                    return #leave directory if any known filetypes remain.
+#
+#    if os.path.exists(del_target):
+#        shutil.rmtree(del_target) #otherwise delete the directory with unknown file types
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
