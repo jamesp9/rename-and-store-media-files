@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import unittest
 import os
@@ -41,7 +41,7 @@ class TestRASMF(unittest.TestCase):
         else:
             self.media_dir = '/tmp/rasmf'
 
-        self.dldir = os.path.join(self.media_dir, 'download')
+        self.in_dir = os.path.join(self.media_dir, 'incoming')
         self.movie_dir = os.path.join(self.media_dir, "movies")
         self.tv_dir = os.path.join(self.media_dir, "TV")
 
@@ -49,7 +49,7 @@ class TestRASMF(unittest.TestCase):
         if os.path.exists(self.media_dir):
             shutil.rmtree(self.media_dir)
 
-        os.makedirs(self.dldir)
+        os.makedirs(self.in_dir)
         os.makedirs(self.movie_dir)
         os.makedirs(self.tv_dir)
 
@@ -170,7 +170,7 @@ class TestRASMF(unittest.TestCase):
 
     def test_relative_path(self):
         logger.debug("{0} {1} {0}".format('=' * 20,whoami(), ))
-        dl_dir = os.path.join(self.media_dir, 'download')
+        dl_dir = os.path.join(self.media_dir, 'incoming')
 
         test_data = [
             dl_dir,
@@ -202,7 +202,7 @@ class TestRASMF(unittest.TestCase):
         logger.debug("{0} {1} {0}".format('=' * 20,whoami(), ))
 
         test_data = [
-            (os.path.join(self.media_dir), '', 'Spaces.Are.Here.S01E01'),
+            ('', 'Spaces.Are.Here.S01E01'),
             ('Just.A.Season-S03', 'S03E03'),
             ('No.Season.Here', 'No.Season.Here'),
             ]
@@ -261,7 +261,7 @@ class TestRASMF(unittest.TestCase):
         logger.debug("{0} {1} {0}".format('=' * 20,whoami(), ))
 
         test_data = [
-            (os.path.join(self.media_dir, 'My.Favourite.Tv.Show-S01'), 'My Favourite Tv Show-S01E01.avi',self.tv_dir),
+            (os.path.join(self.media_dir, 'incoming', 'My.Favourite.Tv.Show-S01'), 'My Favourite Tv Show-S01E01.avi',self.tv_dir),
             ]
 
         observed = []
@@ -269,17 +269,25 @@ class TestRASMF(unittest.TestCase):
             os.path.join(self.tv_dir, 'My.Favourite.Tv.Show', 'My.Favourite.Tv.Show-S01', 'My.Favourite.Tv.Show-S01E01.avi')
             ]
 
-        for rootdir, dirs, files in os.walk(self.dldir,topdown=False):
+        # Create test files
+        for p1, fn, ptv in test_data:
+            os.makedirs(p1, exist_ok=True)
+            with open(os.path.join(p1,fn), 'w') as fo:
+                fo.write(p1 + fn + ptv)
+
+        # Run the main tv function on test files
+        for rootdir, dirs, files in os.walk(self.in_dir,topdown=False):
             for full_filename in files:
                 # test against file extension
                 file_extension = os.path.splitext(full_filename)[1]
                 file_extension = file_extension.replace('.', '').lower()
 
-                #if file_extension in rasmf.video_file_extensions:
+                if file_extension in rasmf.video_file_extensions:
                     # Is it a TV show
-                if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
-                    rasmf.process_tv_show_file(rootdir, full_filename, self.tv_dir)
+                    if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
+                        rasmf.process_tv_show_file(rootdir, full_filename, self.tv_dir)
 
+        # Observe which files are stored in the tv media dir
         for root, dirs, files in os.walk(self.tv_dir, topdown=False):
             for f in files:
                 logger.debug("   observed: {} {}".format(root, f))

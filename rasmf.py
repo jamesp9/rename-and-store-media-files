@@ -18,8 +18,8 @@ import re
 
 #media_dir = "/zdata"
 media_dir = "/tmp/rasmf"
-#dldir = os.path.join(media_dir, "download", "holding")
-dldir = os.path.join(media_dir, "download")
+#in_dir = os.path.join(media_dir, "incoming", "holding")
+in_dir = os.path.join(media_dir, "incoming")
 
 movie_dir = os.path.join(media_dir, "movies")
 tv_dir = os.path.join(media_dir, "TV")
@@ -117,13 +117,13 @@ def tv_show_name_season(sname, fname):
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
-    global dldir
+    global in_dir
     tv_filename, tv_ext = lower_splitext(source_filename)
     tv_filename = sanitise_string(tv_filename)
     tv_filename = split_on_season(tv_filename)
     tv_filename = tv_filename.title()
 
-    first_relpath = relative_path(source_dir, dldir)
+    first_relpath = relative_path(source_dir, in_dir)
     #print("first_relpath: {}".format(first_relpath))
     show_name = tv_show_name(first_relpath, tv_filename)
     #print("show_name: {}".format(show_name))
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         if not os.path.exists(d):
             os.makedirs(d)
 
-    for rootdir, dirs, files in os.walk(dldir,topdown=False):
+    for rootdir, dirs, files in os.walk(in_dir,topdown=False):
         for full_filename in files:
             # test against file extension
             file_extension = os.path.splitext(full_filename)[1]
@@ -184,15 +184,15 @@ if __name__ == "__main__":
                     shutil.move(source_dir, target_dir)
 
                     # afterwards only remove directory we have moved files from
-                    # This needs to be tested in case the movie was in the main dldir
-                    directory_deletion_list.append(os.path.dirname(rootdir.replace(dldir, '')))
+                    # This needs to be tested in case the movie was in the main in_dir
+                    directory_deletion_list.append(os.path.dirname(rootdir.replace(in_dir, '')))
 
 
 
         
     # This needs to be changed, only files that have been processed should be removed
     for del_dir in directory_deletion_list:
-        target = os.path.join(dldir, del_dir)
+        target = os.path.join(in_dir, del_dir)
         for rootdir, dirs, files in os.walk(target):
             for full_filename in files:
                 filename, file_extension = os.path.splitext(full_filename.lower())
