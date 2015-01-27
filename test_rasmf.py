@@ -253,20 +253,22 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
 
-
-
-
-
     def test_process_tv_show_file(self):
         logger.debug("{0} {1} {0}".format('=' * 20,whoami(), ))
 
         test_data = [
-            (os.path.join(self.media_dir, 'incoming', 'My.Favourite.Tv.Show-S01'), 'My Favourite Tv Show-S01E01.avi',self.tv_dir),
+            (os.path.join(self.in_dir, 'My.Favourite.Tv.Show-S01'), 
+                'My Favourite Tv Show-S01E01.avi',
+                self.tv_dir),
+            (self.in_dir, 'My Favourite Tv Show-S01E02.avi', self.tv_dir),
             ]
 
         observed = []
         expected = [
-            os.path.join(self.tv_dir, 'My.Favourite.Tv.Show', 'My.Favourite.Tv.Show-S01', 'My.Favourite.Tv.Show-S01E01.avi')
+            os.path.join(self.tv_dir, 'My.Favourite.Tv.Show',
+                'My.Favourite.Tv.Show-S01', 'My.Favourite.Tv.Show-S01E01.avi'),
+            os.path.join(self.tv_dir, 'My.Favourite.Tv.Show',
+                'My.Favourite.Tv.Show-S01', 'My.Favourite.Tv.Show-S01E02.avi'),
             ]
 
         # Create test files
@@ -274,6 +276,8 @@ class TestRASMF(unittest.TestCase):
             os.makedirs(p1, exist_ok=True)
             with open(os.path.join(p1,fn), 'w') as fo:
                 fo.write(p1 + fn + ptv)
+
+        rasmf.pause()
 
         # Run the main tv function on test files
         for rootdir, dirs, files in os.walk(self.in_dir,topdown=False):
@@ -286,6 +290,8 @@ class TestRASMF(unittest.TestCase):
                     # Is it a TV show
                     if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
                         rasmf.process_tv_show_file(rootdir, full_filename, self.tv_dir)
+
+        rasmf.pause()
 
         # Observe which files are stored in the tv media dir
         for root, dirs, files in os.walk(self.tv_dir, topdown=False):

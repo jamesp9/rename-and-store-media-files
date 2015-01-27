@@ -93,7 +93,6 @@ def tv_show_name(first_dir, fname):
     #
     # re.sub(pattern, repl, string, count=0, flags=0)
     # If the pattern isn't found, string is returned unchanged
-    #print("first_dir:{}, fname:{}".format(first_dir, fname))
     first_dir = sanitise_string(first_dir)
     first_dir = first_dir.title()
     if re.search(r'^[sS][0-9]+', fname):
@@ -115,40 +114,59 @@ def tv_show_name_season(sname, fname):
     sname = sname + '-' + season
     return sname
 
+def remove_directory(rel_dir):
+    global in_dir
+
+    del_target = os.path.join(in_dir, rel_dir)
+    if os.path.normpath(del_target) == in_dir:
+        return #exit if incoming folder
+
+    print("in_dir", in_dir)
+    print('del_target',del_target)
+
+    dir_listing = os.listdir(del_target)
+    if len(dir_listing) == 0:
+        shutil.rmtree(del_target) #remove folder if empty
+    else:
+        for rootdir, dirs, files in os.walk(del_target):
+            for full_filename in files:
+                filename, file_extension = os.path.splitext(full_filename.lower())
+                # skip known filetypes that still exist, just in case
+                if file_extension in video_file_extensions or file_extension in audio_file_extensions:
+                    return #leave directory if any known filetypes remain.
+
+    if os.path.exists(del_target):
+        shutil.rmtree(del_target) #otherwise delete the directory with unknown file types
+
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
     global in_dir
+    global directory_deletion_list
     tv_filename, tv_ext = lower_splitext(source_filename)
     tv_filename = sanitise_string(tv_filename)
     tv_filename = split_on_season(tv_filename)
     tv_filename = tv_filename.title()
 
     first_relpath = relative_path(source_dir, in_dir)
-    #print("first_relpath: {}".format(first_relpath))
     show_name = tv_show_name(first_relpath, tv_filename)
-    #print("show_name: {}".format(show_name))
 
     show_season = tv_show_name_season(show_name, tv_filename)
-    #print("show_season: {}".format(show_season))
 
-    #print("base_tv_dir: {}".format(base_tv_dir))
     target_dir = os.path.join(base_tv_dir, show_name, show_season)
-    #print("target_dir: {}".format(target_dir))
 
     if not os.path.exists(target_dir):
         os.makedirs(target_dir, exist_ok=True)
 
     source_path = os.path.join(source_dir, source_filename)
-    #print("source_path: {}".format(source_path))
     target_path = os.path.join(target_dir, tv_filename + tv_ext)
-    #print("target_path: {}".format(target_path))
 
-    #print("TV: ", source_dir, " ==> ", target_dir)
-    shutil.move(source_path, target_path)
-    
-    # afterwards only remove source_dir we have moved files from
-    # This helps avoid deleting file unessarily
-    directory_deletion_list.append(first_relpath)
+    try:
+        shutil.move(source_path, target_path)
+    except FileNotFoundError as msg:
+        print("{}: Unable to move {} to {}".format(msg, source_path, target_path))
+    else:
+        # only remove relative incoming path if move operations successful
+        remove_directory(first_relpath)
 
 
 
@@ -167,8 +185,6 @@ if __name__ == "__main__":
             if file_extension in video_file_extensions:
                 # Is it a TV show
                 if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
-                    #print("-" * 79)
-                    #print("rootdir: {} full_filename: {} tv_dir: {}".format(rootdir, full_filename, tv_dir))
                     process_tv_show_file(rootdir, full_filename, tv_dir)
 
                 # Is it a Movie
@@ -190,14 +206,4 @@ if __name__ == "__main__":
 
 
         
-    # This needs to be changed, only files that have been processed should be removed
-    for del_dir in directory_deletion_list:
-        target = os.path.join(in_dir, del_dir)
-        for rootdir, dirs, files in os.walk(target):
-            for full_filename in files:
-                filename, file_extension = os.path.splitext(full_filename.lower())
-                if file_extension in video_file_extensions or file_extension in audio_file_extensions:
-                    continue
-                else:
-                    #print("Removing Dir: ", target)
-                    shutil.rmtree(target)
+
