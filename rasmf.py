@@ -7,8 +7,8 @@
 # For refence see Kodi Wiki
 # http://kodi.wiki/view/Naming_video_files/TV_shows#Split-episode
 ######################################################################
-"""Rename video files formats to somthing sensible (i.e. removing whitespaces and brackets)
-and then store files in a preferred location.  
+"""Rename video files formats to somthing sensible (i.e. removing whitespaces
+and brackets) and then store files in a preferred location.
 In preparation for Kodi(XBMC) to scrape the files and add to library.
 """
 
@@ -24,12 +24,11 @@ in_dir = os.path.join(media_dir, "incoming")
 movie_dir = os.path.join(media_dir, "movies")
 tv_dir = os.path.join(media_dir, "TV")
 
-video_file_extensions = ['avi','divx','wmv', 'mp4', 'mkv', 'mpg', 'm4v']
-audio_file_extensions = ['flac','mp3','ogg']
-doc_ext = ['doc','docx','pdf']
+video_file_extensions = ['avi', 'divx', 'wmv', 'mp4', 'mkv', 'mpg', 'm4v']
+audio_file_extensions = ['flac', 'mp3', 'ogg']
+doc_ext = ['doc', 'docx', 'pdf']
 
 directory_deletion_list = []
-
 
 
 def pause():
@@ -52,8 +51,8 @@ def sanitise_string(fname):
             if character == '&':
                 fname = fname.replace('&', 'and')
             else:
-                fname = fname.replace(character,'.')
-    fname = re.sub(r'\.$', r'', fname) #remove trailing period
+                fname = fname.replace(character, '.')
+    fname = re.sub(r'\.$', r'', fname)  # remove trailing period
     return fname
 
 
@@ -81,11 +80,13 @@ def relative_path(full_path, base_path):
     else:
         path_list = relpath.split(os.sep)
         return path_list[0]
-    
+
+
 def tv_show_name(first_dir, fname):
     """
-    The TV show name is assumed to be the first part of the string up to [sS][0-9]+ taken from
-    either the filename of first element of the source directory.
+    The TV show name is assumed to be the first part of the string
+    up to [sS][0-9]+ taken from either the filename or the
+    first element of the source directory.
     The TV show name is returned sanitised and title cased.
     """
     # Return the string from left to the character before the first '-' hyphen
@@ -96,13 +97,13 @@ def tv_show_name(first_dir, fname):
     first_dir = sanitise_string(first_dir)
     first_dir = first_dir.title()
     if re.search(r'^[sS][0-9]+', fname):
-        # If the season is at the beginning of the file 
+        # If the season is at the beginning of the file
         # Use the containing directory to for the TV show name
         show_name = re.sub(r'(^.*)[-._][sS][0-9]+', r'\1', first_dir)
     else:
-        #show_name = re.sub(r'(^.*)-.*$', r'\1',  fname)
+        # show_name = re.sub(r'(^.*)-.*$', r'\1',  fname)
         show_name = re.sub(r'(^.*)[-_.][Ss][0-9]+[Ee][0-9]+.*$', r'\1',  fname)
-        
+
     return show_name
 
 
@@ -114,35 +115,43 @@ def tv_show_name_season(sname, fname):
     sname = sname + '-' + season
     return sname
 
-def remove_directory(rel_dir):
-    pass # this currently broken
-#    global in_dir
-#
-#    del_target = os.path.join(in_dir, rel_dir)
-#    if os.path.normpath(del_target) == in_dir:
-#        return #exit if incoming folder
-#
-#    print("in_dir", in_dir)
-#    print('del_target',del_target)
-#
-#    dir_listing = os.listdir(del_target)
-#    if len(dir_listing) == 0:
-#        shutil.rmtree(del_target) #remove folder if empty
-#    else:
-#        for rootdir, dirs, files in os.walk(del_target):
-#            for full_filename in files:
-#                filename, file_extension = os.path.splitext(full_filename.lower())
-#                # skip known filetypes that still exist, just in case
-#                if file_extension in video_file_extensions or file_extension in audio_file_extensions:
-#                    return #leave directory if any known filetypes remain.
-#
-#    if os.path.exists(del_target):
-#        shutil.rmtree(del_target) #otherwise delete the directory with unknown file types
+
+def clean_up(list_of_dirs):
+    """
+    This function removes any empty directories or directories with unwanted
+    files left behind.
+    """
+    global in_dir
+
+    for rel_dir in list_of_dirs:
+        if rel_dir != '':
+            del_target = os.path.join(in_dir, rel_dir)
+
+        if os.path.normpath(del_target) == in_dir:
+            continue  # exit if incoming folder
+
+        print("in_dir", in_dir)
+        print('del_target', del_target)
+
+        dir_listing = os.listdir(del_target)
+        if len(dir_listing) == 0:
+            shutil.rmtree(del_target)  # remove folder if empty
+        else:
+            for rootdir, dirs, files in os.walk(del_target):
+                for full_filename in files:
+                    filename, file_extension = os.path.splitext(full_filename.lower())
+                    # skip known filetypes that still exist, just in case
+                    if file_extension in video_file_extensions or file_extension in audio_file_extensions or file_extension in doc_ext:
+                        return  # leave directory if any known filetypes remain.
+
+        if os.path.exists(del_target):
+            shutil.rmtree(del_target)  # delete directory with unknown file types
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
     global in_dir
     global directory_deletion_list
+    global logger
     tv_filename, tv_ext = lower_splitext(source_filename)
     tv_filename = sanitise_string(tv_filename)
     tv_filename = split_on_season(tv_filename)
@@ -163,13 +172,15 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
     try:
         shutil.move(source_path, target_path)
-        logger.info("Moving:{0} => {1}".format(source_path, target_path))
+        # logger.info("Moving:{0} => {1}".format(source_path, target_path))
+        print("clean_up_item: {}".format(source_dir))
+        print("clean_up_item: {}".format(first_relpath))
+        return first_relpath
     except FileNotFoundError as msg:
-        logger.error("{}: Unable to move {} to {}".format(msg, source_path, target_path))
-    else:
-        # only remove relative incoming path if move operations successful
-        remove_directory(first_relpath)
-
+        print(msg)
+        # logger.error("{}: Unable to move {} to {}".format(
+        # msg, source_path, target_path))
+        return None
 
 
 if __name__ == "__main__":
@@ -180,8 +191,9 @@ if __name__ == "__main__":
     # Set the logger based on namespace and minimum log level
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    # Create the FileHandler with Timed Rotating logs and set it's minimum log level
-    handler = logging.handlers.TimedRotatingFileHandler(logfile, when='midnight')
+    # FileHandler with Timed Rotating logs and set it's minimum log level
+    handler = logging.handlers.TimedRotatingFileHandler(
+        logfile, when='midnight')
     handler.setLevel(logging.DEBUG)
     # Create log formatter
     formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
@@ -194,7 +206,8 @@ if __name__ == "__main__":
         if not os.path.exists(d):
             os.makedirs(d)
 
-    for rootdir, dirs, files in os.walk(in_dir,topdown=False):
+    clean_up_list = []
+    for rootdir, dirs, files in os.walk(in_dir, topdown=False):
         for full_filename in files:
             # test against file extension
             file_extension = os.path.splitext(full_filename)[1]
@@ -203,8 +216,11 @@ if __name__ == "__main__":
             if file_extension in video_file_extensions:
                 # Is it a TV show
                 if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
-                    logger.debug("TV Show:{0}".format(full_filename))
-                    process_tv_show_file(rootdir, full_filename, tv_dir)
+                    # logger.debug("TV Show:{0}".format(full_filename))
+                    clean_up_item = process_tv_show_file(
+                        rootdir, full_filename, tv_dir)
+                    if clean_up_item:
+                        clean_up_list.append(clean_up_item)
 
                 # Is it a Movie
                 # they often have their year in the middle of the filename
@@ -213,16 +229,15 @@ if __name__ == "__main__":
                     movie_filename = split_on_year(movie_filename)
                     movie_filename = movie_filename.title()
 
-                    source_dir = os.path.join(rootdir,full_filename)
+                    source_dir = os.path.join(rootdir, full_filename)
                     target_dir = os.path.join(movie_dir, movie_filename)
-                    #print("MOVIE: ", source_dir, " ==> ", target_dir)
+                    # print("MOVIE: ", source_dir, " ==> ", target_dir)
                     shutil.move(source_dir, target_dir)
 
-                    # afterwards only remove directory we have moved files from
-                    # This needs to be tested in case the movie was in the main in_dir
-                    directory_deletion_list.append(os.path.dirname(rootdir.replace(in_dir, '')))
+                    # Afterwards only remove directory we have moved files from
+                    directory_deletion_list.append(
+                        os.path.dirname(rootdir.replace(in_dir, '')))
 
-
-
-        
-
+    # Last step clean up the incoming directory
+    print(clean_up_list)
+    clean_up(clean_up_list)
