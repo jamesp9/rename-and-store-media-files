@@ -19,7 +19,7 @@ class TestRASMF(unittest.TestCase):
 
     def setUp(self):
         if platform.system() == 'Windows':
-            self.media_dir = os.path.join('c:\\', 'tmp', 'rasmf')
+            self.media_dir = os.path.join('D:\\', 'tmp', 'rasmf')
         else:
             self.media_dir = '/tmp/rasmf'
 
@@ -50,7 +50,7 @@ class TestRASMF(unittest.TestCase):
             'the.title.2006.phatdisc.eng-somechick.www.example.com',
             'noname',
             'my.test.movie.2001.file.has.bracket.s.and.parnthesis',
-                ]
+        ]
         for filename in test_data:
             observed.append(rasmf.sanitise_string(filename))
 
@@ -146,7 +146,9 @@ class TestRASMF(unittest.TestCase):
             dl_dir,
             os.path.join(dl_dir, 'Spaces Are Here S01'),
             os.path.join(dl_dir, 'Periods.And.A.Season.Number-S01'),
-            os.path.join(dl_dir, 'Space And Square Brackets S05E08 AND Square[brackets]'),
+            os.path.join(
+                dl_dir,
+                'Space And Square Brackets S05E08 AND Square[brackets]'),
             ]
 
         observed = []
@@ -176,7 +178,8 @@ class TestRASMF(unittest.TestCase):
         expected = [
             'Spaces.Are.Here',
             'Just.A.Season',
-            'No.Season.Here',  # No re.search would match so the original string would be returned
+            # No re.search would match so the original string would be returned
+            'No.Season.Here',
             ]
 
         for first_relpath, tv_filename in test_data:
@@ -222,14 +225,26 @@ class TestRASMF(unittest.TestCase):
 
         observed = []
         expected = [
-            os.path.join(self.tv_dir, 'My.Favourite.Tv.Show',
-                'My.Favourite.Tv.Show-S01', 'My.Favourite.Tv.Show-S01E01.avi'),
-            os.path.join(self.tv_dir, 'My.Favourite.Tv.Show',
-                'My.Favourite.Tv.Show-S01', 'My.Favourite.Tv.Show-S01E02.avi'),
-            os.path.join(self.tv_dir, 'A.Different.Tv.Show',
-                'A.Different.Tv.Show-S01', 'A.Different.Tv.Show-S01E03.avi'),
-            os.path.join(self.tv_dir, 'More.Than.One.Dir.Deep',
-                'More.Than.One.Dir.Deep-S01', 'More.Than.One.Dir.Deep-S01E04.avi'),
+            os.path.join(
+                self.tv_dir,
+                'My.Favourite.Tv.Show',
+                'My.Favourite.Tv.Show-S01',
+                'My.Favourite.Tv.Show-S01E01.avi'),
+            os.path.join(
+                self.tv_dir,
+                'My.Favourite.Tv.Show',
+                'My.Favourite.Tv.Show-S01',
+                'My.Favourite.Tv.Show-S01E02.avi'),
+            os.path.join(
+                self.tv_dir,
+                'A.Different.Tv.Show',
+                'A.Different.Tv.Show-S01',
+                'A.Different.Tv.Show-S01E03.avi'),
+            os.path.join(
+                self.tv_dir,
+                'More.Than.One.Dir.Deep',
+                'More.Than.One.Dir.Deep-S01',
+                'More.Than.One.Dir.Deep-S01E04.avi'),
             ]
 
         # Create test files
@@ -248,7 +263,8 @@ class TestRASMF(unittest.TestCase):
                 if file_extension in rasmf.video_file_extensions:
                     # Is it a TV show
                     if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
-                        rasmf.process_tv_show_file(rootdir, full_filename, self.tv_dir)
+                        rasmf.process_tv_show_file(
+                            rootdir, full_filename, self.tv_dir)
 
         # Observe which files are stored in the tv media dir
         for root, dirs, files in os.walk(self.tv_dir, topdown=False):
@@ -284,17 +300,17 @@ class TestRASMF(unittest.TestCase):
                 logger.debug("Writing file: {}".format(pathfile))
                 with open(os.path.join(path, fn), 'w') as fo:
                     fo.write(p1 + fn)
-
         rasmf.clean_up(test_list)
 
         for incoming in os.listdir(self.in_dir):
-            path = os.path.join(self.in_dir, incoming)
-            logger.debug("Observed: {}".format(path))
-            if os.path.isdir(path):
-                observed.append(path)
+            logger.debug("Observed: {}".format(incoming))
+            if os.path.isdir(os.path.join(self.in_dir, incoming)):
+                observed.append(incoming)
 
         observed.sort()
+        logger.debug("observed: {}".format(observed))
         expected.sort()
+        logger.debug("expected: {}".format(expected))
         self.assertEqual(observed, expected)
 
     def tearDown(self):
@@ -304,5 +320,6 @@ class TestRASMF(unittest.TestCase):
 if __name__ == "__main__":
     rasmf.logging_config('DEBUG')
     test_logger = logging.getLogger('rasmf')
-    test_logger.info("Starting tests.")
+    test_logger.info("\n")
+    test_logger.info("{0} Starting tests {0}".format("*" * 30))
     unittest.main()

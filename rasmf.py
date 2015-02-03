@@ -152,37 +152,44 @@ def clean_up(list_of_dirs):
     global in_dir
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
-    logger.debug("clean_up: list_of_dirs: {}".format(list_of_dirs))
+    logger.debug("list_of_dirs: {}".format(list_of_dirs))
 
     for rel_dir in list_of_dirs:
         logger.info("Relative directory: {}".format(rel_dir))
         if rel_dir != '':
             del_target = os.path.normpath(os.path.join(in_dir, rel_dir))
 
-        dir_listing = os.listdir(del_target)
-
         delete_directory = False
 
+        dir_listing = os.listdir(del_target)
         if len(dir_listing) == 0:
-            logger.info("Removing empty directory: {}".format(del_target))
+            logger.info(" Empty directory: {}".format(del_target))
             delete_directory = True
             #shutil.rmtree(del_target)  # remove folder if empty
         else:
-            for rootdir, dirs, files in os.walk(del_target):
-                for full_filename in files:
-                    filename, file_extension = os.path.splitext(
-                        full_filename.lower())
-                    # skip known filetypes that still exist, just in case
-                    if (file_extension in video_file_extensions or
-                            file_extension in audio_file_extensions or
-                            file_extension in doc_extensions or
-                            file_extension in other_extensions):
-                        break  # keep directory for known filetypes
-                    else:
-                        if os.path.exists(del_target):
-                            logger.info("Removing directory: {}".format(del_target))
-                            # delete dir with unknown file types
-                            shutil.rmtree(del_target)
+            # check this dir for files
+            for rootdir, dirs, files in os.walk(del_target, topdown=False):
+                logger.debug("{} {} {}".format(rootdir, dirs, files))
+                if files:
+                    for full_filename in files:
+                        logger.debug(" dir:{} fn:{}".format(rootdir, full_filename))
+                        filename, file_extension = os.path.splitext(
+                            full_filename.lower())
+                        # skip known filetypes that still exist, just in case
+                        if (file_extension in video_file_extensions or
+                                file_extension in audio_file_extensions or
+                                file_extension in doc_extensions or
+                                file_extension in other_extensions):
+                            #break  # keep directory for known filetypes
+                            delete_directory = False
+                else:
+                    delete_directory = True
+
+        if delete_directory:
+            if os.path.exists(del_target):
+                logger.info(" Removing directory: {}".format(del_target))
+                # delete dir with unknown file types
+                shutil.rmtree(del_target)
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
