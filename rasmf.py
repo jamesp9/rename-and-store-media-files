@@ -17,6 +17,7 @@ import shutil
 import re
 import logging
 import logging.handlers
+import inspect
 
 media_dir = "/tmp/rasmf"
 in_dir = os.path.join(media_dir, "incoming")
@@ -26,7 +27,8 @@ tv_dir = os.path.join(media_dir, "TV")
 
 video_file_extensions = ['avi', 'divx', 'wmv', 'mp4', 'mkv', 'mpg', 'm4v']
 audio_file_extensions = ['flac', 'mp3', 'ogg']
-doc_ext = ['doc', 'docx', 'pdf']
+doc_extensions = ['doc', 'docx', 'pdf']
+other_extensions = ['exe', 'zip', 'py']
 
 directory_deletion_list = []
 
@@ -35,13 +37,37 @@ def pause():
     input("Press any key to continue")
 
 
+def logging_config(log_level='INFO'):
+    logfile = os.path.join('log', 'rasmf.log')
+
+    if not os.path.isdir('log'):
+        os.mkdir('log')
+    # Set the logger based on namespace and minimum log level
+    logger = logging.getLogger('rasmf')
+    logger.setLevel(logging.getLevelName(log_level))
+    # FileHandler with Timed Rotating logs and set it's minimum log level
+    handler = logging.handlers.TimedRotatingFileHandler(
+        logfile, when='midnight')
+    handler.setLevel(logging.getLevelName(log_level))
+    # Create log formatter
+    formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+
+
 def lower_splitext(filename):
     return os.path.splitext(filename.lower())
 
 
+def function_name():
+    return inspect.stack()[1][3]  # get name of current function
+
+
 def sanitise_string(fname):
     """
-    Sanatise a string by removing brackets and using a preferred seperator (e.g. period, underscore or space)
+    Sanatise a string by removing brackets and using a preferred seperator
+    (e.g. period, underscore or space)
     Currently only returns a string with period as the seperator.
     """
 
@@ -63,7 +89,9 @@ def split_on_year(fname):
 
 
 def split_on_season(fname):
-    """Return the string upto and including the season and episode string(e.g. S01E01)"""
+    """Return the string upto and including the season and episode string
+    (e.g. S01E01)
+    """
     fname = re.sub(r'(^.*[sS][0-9]+[eE][0-9]+).*$', r'\1', fname)
     return fname
 
@@ -122,6 +150,9 @@ def clean_up(list_of_dirs):
     files left behind.
     """
     global in_dir
+    logger = logging.getLogger('rasmf')
+    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
+    logger.debug("clean_up: list_of_dirs: {}".format(list_of_dirs))
 
     for rel_dir in list_of_dirs:
         if rel_dir != '':
@@ -130,28 +161,36 @@ def clean_up(list_of_dirs):
         if os.path.normpath(del_target) == in_dir:
             continue  # exit if incoming folder
 
-        print("in_dir", in_dir)
-        print('del_target', del_target)
-
         dir_listing = os.listdir(del_target)
         if len(dir_listing) == 0:
+            logger.info("Removing empty directory: {}".format(del_target))
             shutil.rmtree(del_target)  # remove folder if empty
         else:
             for rootdir, dirs, files in os.walk(del_target):
                 for full_filename in files:
-                    filename, file_extension = os.path.splitext(full_filename.lower())
+                    filename, file_extension = os.path.splitext(
+                        full_filename.lower())
                     # skip known filetypes that still exist, just in case
-                    if file_extension in video_file_extensions or file_extension in audio_file_extensions or file_extension in doc_ext:
-                        return  # leave directory if any known filetypes remain.
-
-        if os.path.exists(del_target):
-            shutil.rmtree(del_target)  # delete directory with unknown file types
+                    if (file_extension in video_file_extensions or
+                            file_extension in audio_file_extensions or
+                            file_extension in doc_extensions or
+                            file_extension in other_extensions):
+                        continue  # keep directory for known filetypes
+                    else:
+                        if os.path.exists(del_target):
+                            logger.info("Removing directory: {}".format(del_target))
+                            # delete dir with unknown file types
+                            shutil.rmtree(del_target)  
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
     global in_dir
     global directory_deletion_list
     global logger
+
+    logger = logging.getLogger('rasmf')
+    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
+
     tv_filename, tv_ext = lower_splitext(source_filename)
     tv_filename = sanitise_string(tv_filename)
     tv_filename = split_on_season(tv_filename)
@@ -172,34 +211,17 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
     try:
         shutil.move(source_path, target_path)
-        # logger.info("Moving:{0} => {1}".format(source_path, target_path))
-        print("clean_up_item: {}".format(source_dir))
-        print("clean_up_item: {}".format(first_relpath))
+        logger.info("Moving:{0} => {1}".format(source_path, target_path))
         return first_relpath
     except FileNotFoundError as msg:
-        print(msg)
+        logger.error(msg)
         # logger.error("{}: Unable to move {} to {}".format(
         # msg, source_path, target_path))
         return None
 
 
 if __name__ == "__main__":
-    logfile = os.path.join('log', 'rasmf.log')
-
-    if not os.path.isdir('log'):
-        os.mkdir('log')
-    # Set the logger based on namespace and minimum log level
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    # FileHandler with Timed Rotating logs and set it's minimum log level
-    handler = logging.handlers.TimedRotatingFileHandler(
-        logfile, when='midnight')
-    handler.setLevel(logging.DEBUG)
-    # Create log formatter
-    formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
+    logging_config('DEBUG')
 
     # Create the movie and tv folders should they not exist
     for d in [movie_dir, tv_dir]:
@@ -239,5 +261,4 @@ if __name__ == "__main__":
                         os.path.dirname(rootdir.replace(in_dir, '')))
 
     # Last step clean up the incoming directory
-    print(clean_up_list)
     clean_up(clean_up_list)

@@ -5,11 +5,8 @@ import os
 import shutil
 import platform
 import logging
-import logging.handlers
 import inspect
 import re
-# import time
-# import glob
 
 import rasmf
 
@@ -18,24 +15,8 @@ def whoami():
     return inspect.stack()[1][3]  # get name of current function
 
 
-# Logging
-logfile = os.path.join('log', 'test_rasmf.log')
-if not os.path.isdir('log'):
-    os.mkdir('log')
-# Set the logger based on namespace and minimum log level
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-# Create the FileHandler with Timed Rotating logs and set it's minimum log level
-handler = logging.handlers.TimedRotatingFileHandler(logfile, when='midnight')
-handler.setLevel(logging.DEBUG)
-# Create log formatter
-formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
-handler.setFormatter(formatter)
-
-logger.addHandler(handler)
-
-
 class TestRASMF(unittest.TestCase):
+
     def setUp(self):
         if platform.system() == 'Windows':
             self.media_dir = os.path.join('c:\\', 'tmp', 'rasmf')
@@ -102,8 +83,6 @@ class TestRASMF(unittest.TestCase):
 
     # TV
     def test_sanitise_string_tv(self):
-        logger.debug("{0} {1} {0}".format('=' * 20, whoami(), ))
-
         test_data = [
             'space as seperator - s01e03 this is fun[xyz]',
             'underscores_are_the_go_s01e05_this_is_fun[_]',
@@ -129,7 +108,6 @@ class TestRASMF(unittest.TestCase):
         observed = []
         for filename in test_data:
             observed_fn = rasmf.sanitise_string(filename)
-            logger.debug("   OBSERVED_FN: {}".format(observed_fn))
             observed.append(observed_fn)
 
         observed.sort()
@@ -137,8 +115,6 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_split_on_season(self):
-        logger.debug("{0} {1} {0}".format('=' * 20, whoami(), ))
-
         test_data = [
             'my.favorite.tv.show-s01e03.this.is.fun.xxx',
             'my.favorite.tv.show.s01e05.this.is.fun.Xxx',
@@ -156,7 +132,6 @@ class TestRASMF(unittest.TestCase):
         observed = []
         for filename in test_data:
             observed_fn = rasmf.split_on_season(filename)
-            logger.debug("   OBSERVED_FN: {}".format(observed_fn))
             observed.append(observed_fn)
 
         observed.sort()
@@ -165,7 +140,6 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_relative_path(self):
-        logger.debug("{0} {1} {0}".format('=' * 20, whoami(), ))
         dl_dir = os.path.join(self.media_dir, 'incoming')
 
         test_data = [
@@ -185,7 +159,6 @@ class TestRASMF(unittest.TestCase):
 
         for source_dir in test_data:
             observed_fn = rasmf.relative_path(source_dir, dl_dir)
-            logger.debug("   OBSERVED_FN: {}".format(observed_fn))
             observed.append(observed_fn)
 
         observed.sort()
@@ -193,8 +166,6 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_tv_show_name(self):
-        logger.debug("{0} {1} {0}".format('=' * 20, whoami(), ))
-
         test_data = [
             ('', 'Spaces.Are.Here.S01E01'),
             ('Just.A.Season-S03', 'S03E03'),
@@ -210,7 +181,6 @@ class TestRASMF(unittest.TestCase):
 
         for first_relpath, tv_filename in test_data:
             observed_fn = rasmf.tv_show_name(first_relpath, tv_filename)
-            logger.debug("   OBSERVED_FN: {}".format(observed_fn))
             observed.append(observed_fn)
 
         observed.sort()
@@ -218,8 +188,6 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_tv_show_name_season(self):
-        logger.debug("{0} {1} {0}".format('=' * 20, whoami(), ))
-
         test_data = [
             ('Spaces.Are.Here', 'Spaces.Are.Here.S01E01'),
             ('Just.A.Season', 'S03E03'),
@@ -235,7 +203,6 @@ class TestRASMF(unittest.TestCase):
 
         for show_name, tv_filename in test_data:
             observed_fn = rasmf.tv_show_name_season(show_name, tv_filename)
-            logger.debug("   OBSERVED_FN: {}".format(observed_fn))
             observed.append(observed_fn)
 
         observed.sort()
@@ -243,8 +210,6 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_process_tv_show_file(self):
-        logger.debug("{0} {1} {0}".format('=' * 20, whoami(), ))
-
         test_data = [
             (os.path.join(self.in_dir, 'My.Favourite.Tv.Show-S01'),
                 'My Favourite Tv Show-S01E01.avi', self.tv_dir),
@@ -273,8 +238,6 @@ class TestRASMF(unittest.TestCase):
             with open(os.path.join(p1, fn), 'w') as fo:
                 fo.write(p1 + fn + ptv)
 
-        # rasmf.pause()
-
         # Run the main tv function on test files
         for rootdir, dirs, files in os.walk(self.in_dir, topdown=False):
             for full_filename in files:
@@ -287,12 +250,9 @@ class TestRASMF(unittest.TestCase):
                     if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
                         rasmf.process_tv_show_file(rootdir, full_filename, self.tv_dir)
 
-        # rasmf.pause()
-
         # Observe which files are stored in the tv media dir
         for root, dirs, files in os.walk(self.tv_dir, topdown=False):
             for f in files:
-                logger.debug("   observed: {} {}".format(root, f))
                 observed.append(os.path.join(root, f))
 
         observed.sort()
@@ -300,11 +260,49 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_clean_up(self):
-        pass
+        logger = logging.getLogger('rasmf')
+        test_data = [
+            ('Empty.Folder.Tv.Show-S01', ''),
+            ('Folder With A File-S01', 'the offending file.pdf'),
+            (os.path.join('More Than one dir deep', 'sample'), ''),
+            ('', ''),
+            ]
+        test_list = [
+            'Empty.Folder.Tv.Show-S01',
+            'Folder With A File-S01',
+            'More Than one dir deep', ]
+
+        observed = []
+        expected = ['Folder With A File-S01', ]
+
+        # Create test files
+        for p1, fn in test_data:
+            path = os.path.join(self.in_dir, p1)
+            os.makedirs(path, exist_ok=True)
+            pathfile = os.path.join(path, fn)
+            if not os.path.isdir(pathfile):
+                logger.debug("Writing file: {}".format(pathfile))
+                with open(os.path.join(path, fn), 'w') as fo:
+                    fo.write(p1 + fn)
+
+        rasmf.clean_up(test_list)
+
+        for incoming in os.listdir(self.in_dir):
+            path = os.path.join(self.in_dir, incoming)
+            logger.debug("Observed: {}".format(path))
+            if os.path.isdir(path):
+                observed.append(path)
+
+        observed.sort()
+        expected.sort()
+        self.assertEqual(observed, expected)
 
     def tearDown(self):
         shutil.rmtree(self.media_dir)
 
 
 if __name__ == "__main__":
+    rasmf.logging_config('DEBUG')
+    test_logger = logging.getLogger('rasmf')
+    test_logger.info("Starting tests.")
     unittest.main()
