@@ -155,16 +155,18 @@ def clean_up(list_of_dirs):
     logger.debug("clean_up: list_of_dirs: {}".format(list_of_dirs))
 
     for rel_dir in list_of_dirs:
+        logger.info("Relative directory: {}".format(rel_dir))
         if rel_dir != '':
-            del_target = os.path.join(in_dir, rel_dir)
-
-        if os.path.normpath(del_target) == in_dir:
-            continue  # exit if incoming folder
+            del_target = os.path.normpath(os.path.join(in_dir, rel_dir))
 
         dir_listing = os.listdir(del_target)
+
+        delete_directory = False
+
         if len(dir_listing) == 0:
             logger.info("Removing empty directory: {}".format(del_target))
-            shutil.rmtree(del_target)  # remove folder if empty
+            delete_directory = True
+            #shutil.rmtree(del_target)  # remove folder if empty
         else:
             for rootdir, dirs, files in os.walk(del_target):
                 for full_filename in files:
@@ -175,12 +177,12 @@ def clean_up(list_of_dirs):
                             file_extension in audio_file_extensions or
                             file_extension in doc_extensions or
                             file_extension in other_extensions):
-                        continue  # keep directory for known filetypes
+                        break  # keep directory for known filetypes
                     else:
                         if os.path.exists(del_target):
                             logger.info("Removing directory: {}".format(del_target))
                             # delete dir with unknown file types
-                            shutil.rmtree(del_target)  
+                            shutil.rmtree(del_target)
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
