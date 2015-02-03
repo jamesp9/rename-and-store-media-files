@@ -3,7 +3,7 @@
 # Rename and Store Media Files
 # Filename: rasmf.py
 # Author:   James Pinkster
-# Version:  0.04
+# Version:  0.05
 # For refence see Kodi Wiki
 # http://kodi.wiki/view/Naming_video_files/TV_shows#Split-episode
 ######################################################################
@@ -117,19 +117,14 @@ def tv_show_name(first_dir, fname):
     first element of the source directory.
     The TV show name is returned sanitised and title cased.
     """
-    # Return the string from left to the character before the first '-' hyphen
-    # e.g. "vikings-s01e05" would become "vikings"
-    #
-    # re.sub(pattern, repl, string, count=0, flags=0)
-    # If the pattern isn't found, string is returned unchanged
+    # NOTE: with re.sub if pattern isn't found, string is returned unchanged
     first_dir = sanitise_string(first_dir)
     first_dir = first_dir.title()
     if re.search(r'^[sS][0-9]+', fname):
         # If the season is at the beginning of the file
-        # Use the containing directory to for the TV show name
+        # Use the containing directory for the TV show name
         show_name = re.sub(r'(^.*)[-._][sS][0-9]+', r'\1', first_dir)
     else:
-        # show_name = re.sub(r'(^.*)-.*$', r'\1',  fname)
         show_name = re.sub(r'(^.*)[-_.][Ss][0-9]+[Ee][0-9]+.*$', r'\1',  fname)
 
     return show_name
