@@ -42,7 +42,7 @@ class TestRASMF(unittest.TestCase):
             'the.title.2006.phatdisc.eng-somechick(www.example.com)',
             'noname',
             """my.test.movie (2001) file.has[bracket's & parnthesis]""",
-            ]
+        ]
 
         observed = []
         expected = [
@@ -64,7 +64,7 @@ class TestRASMF(unittest.TestCase):
             'the.title-2006.phatdisc.eng-somechick.www.example.com',
             'noname',
             'my.test.movie.2001.file.has.bracket.s.and.parnthesis',
-            ]
+        ]
 
         observed = []
         expected = [
@@ -72,7 +72,7 @@ class TestRASMF(unittest.TestCase):
             'the.title-2006',
             'noname',
             'my.test.movie.2001',
-            ]
+        ]
 
         for filename in test_data:
             observed.append(rasmf.split_on_year(filename))
@@ -92,7 +92,7 @@ class TestRASMF(unittest.TestCase):
             'parenthesis.s01e04-(someguy)',
             'me & my dog-S01E02-halfbaked',
             """some..other-.stuff'S05E01-and more stuff""",
-            ]
+        ]
 
         expected = [
             'space.as.seperator.s01e03.this.is.fun.xyz',
@@ -103,7 +103,7 @@ class TestRASMF(unittest.TestCase):
             'parenthesis.s01e04.someguy',
             'me.and.my.dog-S01E02-halfbaked',
             'some.other.stuff.S05E01-and.more.stuff',
-            ]
+        ]
 
         observed = []
         for filename in test_data:
@@ -114,20 +114,20 @@ class TestRASMF(unittest.TestCase):
         expected.sort()
         self.assertEqual(observed, expected)
 
-    def test_split_on_season(self):
+    def test_split_on_season_tv(self):
         test_data = [
             'my.favorite.tv.show-s01e03.this.is.fun.xxx',
             'my.favorite.tv.show.s01e05.this.is.fun.Xxx',
             'this.string.is.included.s01e01',
             's01e01.this.string.will.be.ignored',
-            ]
+        ]
 
         expected = [
             'my.favorite.tv.show-s01e03',
             'my.favorite.tv.show.s01e05',
             'this.string.is.included.s01e01',
             's01e01',
-            ]
+        ]
 
         observed = []
         for filename in test_data:
@@ -139,7 +139,7 @@ class TestRASMF(unittest.TestCase):
 
         self.assertEqual(observed, expected)
 
-    def test_relative_path(self):
+    def test_relative_path_tv(self):
         dl_dir = os.path.join(self.media_dir, 'incoming')
 
         test_data = [
@@ -149,7 +149,7 @@ class TestRASMF(unittest.TestCase):
             os.path.join(
                 dl_dir,
                 'Space And Square Brackets S05E08 AND Square[brackets]'),
-            ]
+        ]
 
         observed = []
         expected = [
@@ -157,7 +157,7 @@ class TestRASMF(unittest.TestCase):
             'Spaces Are Here S01',
             'Periods.And.A.Season.Number-S01',
             'Space And Square Brackets S05E08 AND Square[brackets]',
-            ]
+        ]
 
         for source_dir in test_data:
             observed_fn = rasmf.relative_path(source_dir, dl_dir)
@@ -172,7 +172,7 @@ class TestRASMF(unittest.TestCase):
             ('', 'Spaces.Are.Here.S01E01'),
             ('Just.A.Season-S03', 'S03E03'),
             ('No.Season.Here', 'No.Season.Here'),
-            ]
+        ]
 
         observed = []
         expected = [
@@ -180,7 +180,7 @@ class TestRASMF(unittest.TestCase):
             'Just.A.Season',
             # No re.search would match so the original string would be returned
             'No.Season.Here',
-            ]
+        ]
 
         for first_relpath, tv_filename in test_data:
             observed_fn = rasmf.tv_show_name(first_relpath, tv_filename)
@@ -195,14 +195,14 @@ class TestRASMF(unittest.TestCase):
             ('Spaces.Are.Here', 'Spaces.Are.Here.S01E01'),
             ('Just.A.Season', 'S03E03'),
             ('No.Season.Here', 'No.Season.Here'),
-            ]
+        ]
 
         observed = []
         expected = [
             'Spaces.Are.Here-S01',
             'Just.A.Season-S03',
             'No.Season.Here-No.Season.Here',
-            ]
+        ]
 
         for show_name, tv_filename in test_data:
             observed_fn = rasmf.tv_show_name_season(show_name, tv_filename)
@@ -221,7 +221,7 @@ class TestRASMF(unittest.TestCase):
                 'A Different Tv Show-S01E03.avi', self.tv_dir),
             (os.path.join(self.in_dir, 'More Than one dir deep', 'sample'),
                 'More Than One Dir Deep-S01E04.avi', self.tv_dir),
-            ]
+        ]
 
         observed = []
         expected = [
@@ -245,7 +245,7 @@ class TestRASMF(unittest.TestCase):
                 'More.Than.One.Dir.Deep',
                 'More.Than.One.Dir.Deep-S01',
                 'More.Than.One.Dir.Deep-S01E04.avi'),
-            ]
+        ]
 
         # Create test files
         for p1, fn, ptv in test_data:
@@ -275,14 +275,14 @@ class TestRASMF(unittest.TestCase):
         expected.sort()
         self.assertEqual(observed, expected)
 
-    def test_clean_up(self):
+    def test_clean_up_tv(self):
         logger = logging.getLogger('rasmf')
         test_data = [
             ('Empty.Folder.Tv.Show-S01', ''),
             ('Folder With A File-S01', 'the offending file.pdf'),
             (os.path.join('More Than one dir deep', 'sample'), ''),
             ('', ''),
-            ]
+        ]
         test_list = [
             'Empty.Folder.Tv.Show-S01',
             'Folder With A File-S01',

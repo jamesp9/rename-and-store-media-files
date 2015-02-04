@@ -160,14 +160,15 @@ def clean_up(list_of_dirs):
         if len(dir_listing) == 0:
             logger.info(" Empty directory: {}".format(del_target))
             delete_directory = True
-            #shutil.rmtree(del_target)  # remove folder if empty
         else:
             # check this dir for files
             for rootdir, dirs, files in os.walk(del_target, topdown=False):
                 logger.debug("{} {} {}".format(rootdir, dirs, files))
                 if files:
                     for full_filename in files:
-                        logger.debug(" dir:{} fn:{}".format(rootdir, full_filename))
+                        logger.debug(" dir:{} fn:{}".format(
+                            rootdir,
+                            full_filename))
                         filename, file_extension = os.path.splitext(
                             full_filename.lower())
                         # skip known filetypes that still exist, just in case
@@ -175,7 +176,6 @@ def clean_up(list_of_dirs):
                                 file_extension in audio_file_extensions or
                                 file_extension in doc_extensions or
                                 file_extension in other_extensions):
-                            #break  # keep directory for known filetypes
                             delete_directory = False
                 else:
                     delete_directory = True
@@ -217,7 +217,7 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
         shutil.move(source_path, target_path)
         logger.info("Moving:{0} => {1}".format(source_path, target_path))
         return first_relpath
-    except FileNotFoundError as msg:
+    except OSError as msg:
         logger.error(msg)
         # logger.error("{}: Unable to move {} to {}".format(
         # msg, source_path, target_path))
@@ -226,6 +226,7 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
 if __name__ == "__main__":
     logging_config('DEBUG')
+    logger = logging.getLogger('rasmf')
 
     # Create the movie and tv folders should they not exist
     for d in [movie_dir, tv_dir]:
@@ -242,14 +243,14 @@ if __name__ == "__main__":
             if file_extension in video_file_extensions:
                 # Is it a TV show
                 if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
-                    # logger.debug("TV Show:{0}".format(full_filename))
+                    logger.debug("TV Show:{0}".format(full_filename))
                     clean_up_item = process_tv_show_file(
                         rootdir, full_filename, tv_dir)
                     if clean_up_item:
                         clean_up_list.append(clean_up_item)
 
                 # Is it a Movie
-                # they often have their year in the middle of the filename
+                # assumes the release year is at the end of the title
                 elif re.search(r'[0-9][0-9][0-9][0-9]', full_filename):
                     movie_filename = sanitise_string(full_filename)
                     movie_filename = split_on_year(movie_filename)
@@ -257,7 +258,7 @@ if __name__ == "__main__":
 
                     source_dir = os.path.join(rootdir, full_filename)
                     target_dir = os.path.join(movie_dir, movie_filename)
-                    # print("MOVIE: ", source_dir, " ==> ", target_dir)
+                    logger.debug("MOVIE: ", source_dir, " ==> ", target_dir)
                     shutil.move(source_dir, target_dir)
 
                     # Afterwards only remove directory we have moved files from
