@@ -117,7 +117,7 @@ def tv_show_name(first_dir, fname):
     first element of the source directory.
     The TV show name is returned sanitised and title cased.
     """
-    # NOTE: with re.sub if pattern isn't found, string is returned unchanged
+    # re.sub NOTE: If pattern isn't found, string is returned unchanged
     first_dir = sanitise_string(first_dir)
     first_dir = first_dir.title()
     if re.search(r'^[sS][0-9]+', fname):
@@ -189,8 +189,6 @@ def clean_up(list_of_dirs):
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
     global in_dir
-    global directory_deletion_list
-    global logger
 
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
@@ -218,10 +216,29 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
         logger.info("Moving:{0} => {1}".format(source_path, target_path))
         return first_relpath
     except OSError as msg:
-        logger.error(msg)
-        # logger.error("{}: Unable to move {} to {}".format(
-        # msg, source_path, target_path))
+        logger.error("{}: Unable to move {} to {}".format(
+            msg,
+            source_path,
+            target_path))
         return None
+
+
+def process_movie_file(source_dir, source_filename, base_movie_dir):
+    logger = logging.getLogger('rasmf')
+    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
+
+    movie_filename = sanitise_string(full_filename)
+    movie_filename = split_on_year(movie_filename)
+    movie_filename = movie_filename.title()
+
+    source_path = os.path.join(source_dir, full_filename)
+    target_path = os.path.join(movie_dir, movie_filename)
+    logger.debug("MOVIE: {0} => {1}".format(source_path, target_path)
+    shutil.move(source_path, target_path)
+
+    # Afterwards only remove directory we have moved files from
+    directory_deletion_list.append(
+        os.path.dirname(rootdir.replace(in_dir, '')))
 
 
 if __name__ == "__main__":
@@ -246,24 +263,19 @@ if __name__ == "__main__":
                     logger.debug("TV Show:{0}".format(full_filename))
                     clean_up_item = process_tv_show_file(
                         rootdir, full_filename, tv_dir)
+
                     if clean_up_item:
                         clean_up_list.append(clean_up_item)
 
                 # Is it a Movie
                 # assumes the release year is at the end of the title
                 elif re.search(r'[0-9][0-9][0-9][0-9]', full_filename):
-                    movie_filename = sanitise_string(full_filename)
-                    movie_filename = split_on_year(movie_filename)
-                    movie_filename = movie_filename.title()
+                    logger.debug("Movie: {0}".format(full_filename))
+                    clean_up_item = process_movie_file(
+                        rootdir, full_filename, movie_dir)
 
-                    source_dir = os.path.join(rootdir, full_filename)
-                    target_dir = os.path.join(movie_dir, movie_filename)
-                    logger.debug("MOVIE: ", source_dir, " ==> ", target_dir)
-                    shutil.move(source_dir, target_dir)
 
-                    # Afterwards only remove directory we have moved files from
-                    directory_deletion_list.append(
-                        os.path.dirname(rootdir.replace(in_dir, '')))
+
 
     # Last step clean up the incoming directory
     clean_up(clean_up_list)
