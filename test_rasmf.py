@@ -64,6 +64,9 @@ class TestRASMF(unittest.TestCase):
             'the.title-2006.phatdisc.eng-somechick.www.example.com',
             'noname',
             'my.test.movie.2001.file.has.bracket.s.and.parnthesis',
+            '1984-1984',
+            '2015.more.title.as.string-1984.some.other.junk',
+            'string.in.front.2015.more.title.as.string.1984.some.other.junk',
         ]
 
         observed = []
@@ -72,6 +75,9 @@ class TestRASMF(unittest.TestCase):
             'the.title-2006',
             'noname',
             'my.test.movie.2001',
+            '1984-1984',
+            '2015.more.title.as.string-1984',
+            'string.in.front.2015.more.title.as.string.1984',
         ]
 
         for filename in test_data:

@@ -30,7 +30,7 @@ audio_file_extensions = ['flac', 'mp3', 'ogg']
 doc_extensions = ['doc', 'docx', 'pdf']
 other_extensions = ['exe', 'zip', 'py']
 
-directory_deletion_list = []
+clean_up_list = []
 
 
 def pause():
@@ -139,6 +139,92 @@ def tv_show_name_season(sname, fname):
     return sname
 
 
+def video_file():
+    global clean_up_list
+
+    # Is it a TV show
+    if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
+        logger.debug("TV Show:{0}".format(full_filename))
+        clean_up_item = process_tv_show_file(
+            rootdir, full_filename, tv_dir)
+
+        if clean_up_item:
+            clean_up_list.append(clean_up_item)
+
+    # Is it a Movie
+    # assumes the release year is at the end of the title
+    elif re.search(r'[0-9][0-9][0-9][0-9]', full_filename):
+        logger.debug("Movie: {0}".format(full_filename))
+        clean_up_item = process_movie_file(
+            rootdir, full_filename, movie_dir)
+
+        if clean_up_item:
+            clean_up_list.append(clean_up_item)
+
+
+def process_tv_show_file(source_dir, source_filename, base_tv_dir):
+    global in_dir
+
+    logger = logging.getLogger('rasmf')
+    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
+
+    tv_filename, tv_ext = lower_splitext(source_filename)
+    tv_filename = sanitise_string(tv_filename)
+    tv_filename = split_on_season(tv_filename)
+    tv_filename = tv_filename.title()
+
+    first_relpath = relative_path(source_dir, in_dir)
+    show_name = tv_show_name(first_relpath, tv_filename)
+
+    show_season = tv_show_name_season(show_name, tv_filename)
+
+    target_dir = os.path.join(base_tv_dir, show_name, show_season)
+
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir, exist_ok=True)
+
+    source_path = os.path.join(source_dir, source_filename)
+    target_path = os.path.join(target_dir, tv_filename + tv_ext)
+
+    try:
+        shutil.move(source_path, target_path)
+        logger.info("Moving:{0} => {1}".format(source_path, target_path))
+        return first_relpath
+    except OSError as msg:
+        logger.error("{}: Unable to move {} to {}".format(
+            msg,
+            source_path,
+            target_path))
+        return None
+
+
+def process_movie_file(source_dir, source_filename, base_movie_dir):
+    global in_dir
+
+    logger = logging.getLogger('rasmf')
+    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
+
+    movie_filename = sanitise_string(full_filename)
+    movie_filename = split_on_year(movie_filename)
+    movie_filename = movie_filename.title()
+
+    source_path = os.path.join(source_dir, source_filename)
+    target_path = os.path.join(base_movie_dir, movie_filename)
+
+    first_relpath = relative_path(source_dir, in_dir)
+
+    try:
+        shutil.move(source_path, target_path)
+        logger.info("Moving:{0} => {1}".format(source_path, target_path))
+        return first_relpath
+    except OSError as msg:
+        logger.error("{}: Unable to move {} to {}".format(
+            msg,
+            source_path,
+            target_path))
+        return None
+
+
 def clean_up(list_of_dirs):
     """
     This function removes any empty directories or directories with unwanted
@@ -187,60 +273,6 @@ def clean_up(list_of_dirs):
                 shutil.rmtree(del_target)
 
 
-def process_tv_show_file(source_dir, source_filename, base_tv_dir):
-    global in_dir
-
-    logger = logging.getLogger('rasmf')
-    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
-
-    tv_filename, tv_ext = lower_splitext(source_filename)
-    tv_filename = sanitise_string(tv_filename)
-    tv_filename = split_on_season(tv_filename)
-    tv_filename = tv_filename.title()
-
-    first_relpath = relative_path(source_dir, in_dir)
-    show_name = tv_show_name(first_relpath, tv_filename)
-
-    show_season = tv_show_name_season(show_name, tv_filename)
-
-    target_dir = os.path.join(base_tv_dir, show_name, show_season)
-
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir, exist_ok=True)
-
-    source_path = os.path.join(source_dir, source_filename)
-    target_path = os.path.join(target_dir, tv_filename + tv_ext)
-
-    try:
-        shutil.move(source_path, target_path)
-        logger.info("Moving:{0} => {1}".format(source_path, target_path))
-        return first_relpath
-    except OSError as msg:
-        logger.error("{}: Unable to move {} to {}".format(
-            msg,
-            source_path,
-            target_path))
-        return None
-
-
-def process_movie_file(source_dir, source_filename, base_movie_dir):
-    logger = logging.getLogger('rasmf')
-    logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
-
-    movie_filename = sanitise_string(full_filename)
-    movie_filename = split_on_year(movie_filename)
-    movie_filename = movie_filename.title()
-
-    source_path = os.path.join(source_dir, full_filename)
-    target_path = os.path.join(movie_dir, movie_filename)
-    logger.debug("MOVIE: {0} => {1}".format(source_path, target_path)
-    shutil.move(source_path, target_path)
-
-    # Afterwards only remove directory we have moved files from
-    directory_deletion_list.append(
-        os.path.dirname(rootdir.replace(in_dir, '')))
-
-
 if __name__ == "__main__":
     logging_config('DEBUG')
     logger = logging.getLogger('rasmf')
@@ -250,7 +282,6 @@ if __name__ == "__main__":
         if not os.path.exists(d):
             os.makedirs(d)
 
-    clean_up_list = []
     for rootdir, dirs, files in os.walk(in_dir, topdown=False):
         for full_filename in files:
             # test against file extension
@@ -258,24 +289,7 @@ if __name__ == "__main__":
             file_extension = file_extension.replace('.', '').lower()
 
             if file_extension in video_file_extensions:
-                # Is it a TV show
-                if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
-                    logger.debug("TV Show:{0}".format(full_filename))
-                    clean_up_item = process_tv_show_file(
-                        rootdir, full_filename, tv_dir)
-
-                    if clean_up_item:
-                        clean_up_list.append(clean_up_item)
-
-                # Is it a Movie
-                # assumes the release year is at the end of the title
-                elif re.search(r'[0-9][0-9][0-9][0-9]', full_filename):
-                    logger.debug("Movie: {0}".format(full_filename))
-                    clean_up_item = process_movie_file(
-                        rootdir, full_filename, movie_dir)
-
-
-
+                video_file()
 
     # Last step clean up the incoming directory
     clean_up(clean_up_list)
