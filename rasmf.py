@@ -235,7 +235,15 @@ def clean_up(list_of_dirs):
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
     logger.debug("list_of_dirs: {}".format(list_of_dirs))
 
-    for rel_dir in list_of_dirs:
+    # Remove duplicates from list
+    clean_list = []
+    for item in list_of_dirs:
+        if item not in clean_list:
+            clean_list.append(item)
+
+    logger.debug("clean_list: {}".format(clean_list))
+
+    for rel_dir in clean_list:
         logger.info("Relative directory: {}".format(rel_dir))
         if rel_dir != '':
             del_target = os.path.normpath(os.path.join(in_dir, rel_dir))

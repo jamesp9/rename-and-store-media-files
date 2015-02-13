@@ -285,12 +285,16 @@ class TestRASMF(unittest.TestCase):
         logger = logging.getLogger('rasmf')
         test_data = [
             ('Empty.Folder.Tv.Show-S01', ''),
+            ('Empty.Folder.Tv.Show-S02', ''),
             ('Folder With A File-S01', 'the offending file.pdf'),
             (os.path.join('More Than one dir deep', 'sample'), ''),
             ('', ''),
         ]
         test_list = [
             'Empty.Folder.Tv.Show-S01',
+            'Empty.Folder.Tv.Show-S01',
+            'Empty.Folder.Tv.Show-S01',
+            'Empty.Folder.Tv.Show-S02',
             'Folder With A File-S01',
             'More Than one dir deep', ]
 
