@@ -3,9 +3,9 @@
 # Rename and Store Media Files
 # Filename: rasmf.py
 # Author:   James Pinkster
-# Version:  0.05
-# For refence see Kodi Wiki
-# http://kodi.wiki/view/Naming_video_files/TV_shows#Split-episode
+# Version:  0.06
+# See Kodi Wiki for naming for video files
+# http://kodi.wiki/view/Naming_video_files/TV_shows
 ######################################################################
 """Rename video files formats to somthing sensible (i.e. removing whitespaces
 and brackets) and then store files in a preferred location.
