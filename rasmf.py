@@ -139,7 +139,7 @@ def tv_show_name_season(sname, fname):
     return sname
 
 
-def video_file():
+def video_file(rootdir, full_filename, file_extension):
     global clean_up_list
 
     # Is it a TV show
@@ -156,7 +156,7 @@ def video_file():
     elif re.search(r'[0-9][0-9][0-9][0-9]', full_filename):
         logger.debug("Movie: {0}".format(full_filename))
         clean_up_item = process_movie_file(
-            rootdir, full_filename, movie_dir)
+            rootdir, full_filename, file_extension, movie_dir)
 
         if clean_up_item:
             clean_up_list.append(clean_up_item)
@@ -168,7 +168,7 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
 
-    tv_filename, tv_ext = lower_splitext(source_filename)
+    tv_filename, file_extension = lower_splitext(source_filename)
     tv_filename = sanitise_string(tv_filename)
     tv_filename = split_on_season(tv_filename)
     tv_filename = tv_filename.title()
@@ -184,7 +184,7 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
         os.makedirs(target_dir, exist_ok=True)
 
     source_path = os.path.join(source_dir, source_filename)
-    target_path = os.path.join(target_dir, tv_filename + tv_ext)
+    target_path = os.path.join(target_dir, tv_filename + file_extension)
 
     try:
         shutil.move(source_path, target_path)
@@ -198,7 +198,7 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
         return None
 
 
-def process_movie_file(source_dir, source_filename, base_movie_dir):
+def process_movie_file(source_dir, source_filename, file_extension, base_movie_dir):
     global in_dir
 
     logger = logging.getLogger('rasmf')
@@ -206,7 +206,7 @@ def process_movie_file(source_dir, source_filename, base_movie_dir):
 
     movie_filename = sanitise_string(full_filename)
     movie_filename = split_on_year(movie_filename)
-    movie_filename = movie_filename.title()
+    movie_filename = movie_filename.title() + '.' + file_extension
 
     source_path = os.path.join(source_dir, source_filename)
     target_path = os.path.join(base_movie_dir, movie_filename)
@@ -285,6 +285,7 @@ if __name__ == "__main__":
     logging_config('DEBUG')
     logger = logging.getLogger('rasmf')
 
+
     # Create the movie and tv folders should they not exist
     for d in [movie_dir, tv_dir]:
         if not os.path.exists(d):
@@ -292,12 +293,14 @@ if __name__ == "__main__":
 
     for rootdir, dirs, files in os.walk(in_dir, topdown=False):
         for full_filename in files:
-            # test against file extension
+            # get lowercase file extension
             file_extension = os.path.splitext(full_filename)[1]
             file_extension = file_extension.replace('.', '').lower()
 
+            # import ipdb; ipdb.set_trace()
+
             if file_extension in video_file_extensions:
-                video_file()
+                video_file(rootdir, full_filename, file_extension)
 
     # Last step clean up the incoming directory
     clean_up(clean_up_list)
