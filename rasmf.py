@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
-######################################################################
-# Rename and Store Media Files
-# Filename: rasmf.py
-# Author:   James Pinkster
-# Version:  0.06
-# See Kodi Wiki for naming for video files
-# http://kodi.wiki/view/Naming_video_files/TV_shows
-######################################################################
-"""Rename video files formats to somthing sensible (i.e. removing whitespaces
+"""
+Rename video files formats to somthing sensible (i.e. removing whitespaces
 and brackets) and then store files in a preferred location.
 In preparation for Kodi(XBMC) to scrape the files and add to library.
 """
+# See Kodi Wiki for naming for video files
+# http://kodi.wiki/view/Naming_video_files/TV_shows
 
 import os
 import shutil
@@ -38,10 +33,12 @@ def pause():
 
 
 def logging_config(log_level='INFO'):
-    logfile = os.path.join('log', 'rasmf.log')
+    log_dir = os.path.join(os.path.expanduser('~'), 'log')
+    logfile = os.path.join(log_dir, 'rasmf.log')
 
-    if not os.path.isdir('log'):
-        os.mkdir('log')
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
+
     # Set the logger based on namespace and minimum log level
     logger = logging.getLogger('rasmf')
     logger.setLevel(logging.getLevelName(log_level))
@@ -198,7 +195,8 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
         return None
 
 
-def process_movie_file(source_dir, source_filename, file_extension, base_movie_dir):
+def process_movie_file(source_dir, source_filename,
+                       file_extension, base_movie_dir):
     global in_dir
 
     logger = logging.getLogger('rasmf')
@@ -284,7 +282,6 @@ def clean_up(list_of_dirs):
 if __name__ == "__main__":
     logging_config('DEBUG')
     logger = logging.getLogger('rasmf')
-
 
     # Create the movie and tv folders should they not exist
     for d in [movie_dir, tv_dir]:
