@@ -283,10 +283,13 @@ def clean_up(list_of_dirs):
 
 if __name__ == "__main__":
     config = configparser.ConfigParser()
+    cfg_file = 'config.ini'
+    if not os.path.exists(cfg_file):
+        shutil.copy('config_example.ini', 'config.ini')
     config.read('config.ini')
 
     logging_config(
-        log_level=config['options'][log_level],
+        log_level=config['options']['log_level'],
         log_dir=config['folders']['log_dir'])
     logger = logging.getLogger('rasmf')
 
@@ -304,7 +307,7 @@ if __name__ == "__main__":
 
             # import ipdb; ipdb.set_trace()
 
-            if file_extension in video_file_extensions:
+            if file_extension in config['file_extensions']['video']:
                 video_file(rootdir, full_filename, file_extension)
 
     # Last step clean up the incoming directory
