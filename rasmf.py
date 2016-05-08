@@ -7,6 +7,7 @@ In preparation for Kodi(XBMC) to scrape the files and add to library.
 # See Kodi Wiki for naming for video files
 # http://kodi.wiki/view/Naming_video_files/TV_shows
 
+import configparser
 import os
 import shutil
 import re
@@ -32,8 +33,9 @@ def pause():
     input("Press any key to continue")
 
 
-def logging_config(log_level='INFO'):
-    log_dir = os.path.join(os.path.expanduser('~'), 'log')
+def logging_config(log_level='INFO', log_dir=None):
+    if not log_dir:
+        log_dir = os.path.join(os.path.expanduser('~'), 'log')
     logfile = os.path.join(log_dir, 'rasmf.log')
 
     if not os.path.isdir(log_dir):
@@ -280,15 +282,21 @@ def clean_up(list_of_dirs):
 
 
 if __name__ == "__main__":
-    logging_config('DEBUG')
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    logging_config(
+        log_level=config['options'][log_level],
+        log_dir=config['folders']['log_dir'])
     logger = logging.getLogger('rasmf')
 
     # Create the movie and tv folders should they not exist
-    for d in [movie_dir, tv_dir]:
+    for d in [config['folders']['movie_dir'], config['folders']['tv_dir']]:
         if not os.path.exists(d):
             os.makedirs(d)
 
-    for rootdir, dirs, files in os.walk(in_dir, topdown=False):
+    for rootdir, dirs, files in os.walk(config['folders']['incoming_dir'],
+                                        topdown=False):
         for full_filename in files:
             # get lowercase file extension
             file_extension = os.path.splitext(full_filename)[1]
