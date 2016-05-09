@@ -15,17 +15,6 @@ import logging
 import logging.handlers
 import inspect
 
-media_dir = "/tmp/rasmf"
-in_dir = os.path.join(media_dir, "incoming")
-
-movie_dir = os.path.join(media_dir, "movies")
-tv_dir = os.path.join(media_dir, "TV")
-
-video_file_extensions = ['avi', 'divx', 'wmv', 'mp4', 'mkv', 'mpg', 'm4v']
-audio_file_extensions = ['flac', 'mp3', 'ogg']
-doc_extensions = ['doc', 'docx', 'pdf']
-other_extensions = ['exe', 'zip', 'py']
-
 clean_up_list = []
 
 
@@ -140,6 +129,9 @@ def tv_show_name_season(sname, fname):
 
 def video_file(rootdir, full_filename, file_extension):
     global clean_up_list
+    config = read_config()
+    movie_dir = config['folders']['movie_dir']
+    tv_dir = config['folders']['tv_dir']
 
     # Is it a TV show
     if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
@@ -162,7 +154,8 @@ def video_file(rootdir, full_filename, file_extension):
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
-    global in_dir
+    config = read_config()
+    in_dir = config['folders']['incoming_dir']
 
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
@@ -199,7 +192,8 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
 def process_movie_file(source_dir, source_filename,
                        file_extension, base_movie_dir):
-    global in_dir
+    config = read_config()
+    in_dir = config['folders']['incoming_dir']
 
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
@@ -230,7 +224,13 @@ def clean_up(list_of_dirs):
     This function removes any empty directories or directories with unwanted
     files left behind.
     """
-    global in_dir
+    config = read_config()
+    in_dir = config['folders']['incoming_dir']
+    video_file_extensions = config['file_extensions']['video']
+    audio_file_extensions = config['file_extensions']['audio']
+    doc_extensions = config['file_extensions']['doc']
+    other_extensions = config['file_extensions']['other']
+
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
     logger.debug("list_of_dirs: {}".format(list_of_dirs))
@@ -281,12 +281,18 @@ def clean_up(list_of_dirs):
                 shutil.rmtree(del_target)
 
 
-if __name__ == "__main__":
+def read_config():
     config = configparser.ConfigParser()
     cfg_file = 'config.ini'
     if not os.path.exists(cfg_file):
         shutil.copy('config_example.ini', 'config.ini')
+
     config.read('config.ini')
+    return config
+
+
+if __name__ == "__main__":
+    config = read_config()
 
     logging_config(
         log_level=config['options']['log_level'],
@@ -304,8 +310,6 @@ if __name__ == "__main__":
             # get lowercase file extension
             file_extension = os.path.splitext(full_filename)[1]
             file_extension = file_extension.replace('.', '').lower()
-
-            # import ipdb; ipdb.set_trace()
 
             if file_extension in config['file_extensions']['video']:
                 video_file(rootdir, full_filename, file_extension)
