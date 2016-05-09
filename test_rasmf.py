@@ -35,7 +35,6 @@ class TestRASMF(unittest.TestCase):
         os.makedirs(self.movie_dir)
         os.makedirs(self.tv_dir)
 
-
     # MOVIE
     def test_sanitise_string_movie(self):
         test_data = [

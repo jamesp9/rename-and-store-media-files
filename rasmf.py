@@ -1,34 +1,19 @@
 #!/usr/bin/env python3
-######################################################################
-# Rename and Store Media Files
-# Filename: rasmf.py
-# Author:   James Pinkster
-# Version:  0.06
-# See Kodi Wiki for naming for video files
-# http://kodi.wiki/view/Naming_video_files/TV_shows
-######################################################################
-"""Rename video files formats to somthing sensible (i.e. removing whitespaces
+"""
+Rename video files formats to somthing sensible (i.e. removing whitespaces
 and brackets) and then store files in a preferred location.
 In preparation for Kodi(XBMC) to scrape the files and add to library.
 """
+# See Kodi Wiki for naming for video files
+# http://kodi.wiki/view/Naming_video_files/TV_shows
 
+import configparser
 import os
 import shutil
 import re
 import logging
 import logging.handlers
 import inspect
-
-media_dir = "/tmp/rasmf"
-in_dir = os.path.join(media_dir, "incoming")
-
-movie_dir = os.path.join(media_dir, "movies")
-tv_dir = os.path.join(media_dir, "TV")
-
-video_file_extensions = ['avi', 'divx', 'wmv', 'mp4', 'mkv', 'mpg', 'm4v']
-audio_file_extensions = ['flac', 'mp3', 'ogg']
-doc_extensions = ['doc', 'docx', 'pdf']
-other_extensions = ['exe', 'zip', 'py']
 
 clean_up_list = []
 
@@ -37,11 +22,14 @@ def pause():
     input("Press any key to continue")
 
 
-def logging_config(log_level='INFO'):
-    logfile = os.path.join('log', 'rasmf.log')
+def logging_config(log_level='INFO', log_dir=None):
+    if not log_dir:
+        log_dir = os.path.join(os.path.expanduser('~'), 'log')
+    logfile = os.path.join(log_dir, 'rasmf.log')
 
-    if not os.path.isdir('log'):
-        os.mkdir('log')
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
+
     # Set the logger based on namespace and minimum log level
     logger = logging.getLogger('rasmf')
     logger.setLevel(logging.getLevelName(log_level))
@@ -141,6 +129,9 @@ def tv_show_name_season(sname, fname):
 
 def video_file(rootdir, full_filename, file_extension):
     global clean_up_list
+    config = read_config()
+    movie_dir = config['folders']['movie_dir']
+    tv_dir = config['folders']['tv_dir']
 
     # Is it a TV show
     if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
@@ -163,7 +154,8 @@ def video_file(rootdir, full_filename, file_extension):
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
-    global in_dir
+    config = read_config()
+    in_dir = config['folders']['incoming_dir']
 
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
@@ -198,8 +190,10 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
         return None
 
 
-def process_movie_file(source_dir, source_filename, file_extension, base_movie_dir):
-    global in_dir
+def process_movie_file(source_dir, source_filename,
+                       file_extension, base_movie_dir):
+    config = read_config()
+    in_dir = config['folders']['incoming_dir']
 
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
@@ -230,7 +224,13 @@ def clean_up(list_of_dirs):
     This function removes any empty directories or directories with unwanted
     files left behind.
     """
-    global in_dir
+    config = read_config()
+    in_dir = config['folders']['incoming_dir']
+    video_file_extensions = config['file_extensions']['video']
+    audio_file_extensions = config['file_extensions']['audio']
+    doc_extensions = config['file_extensions']['doc']
+    other_extensions = config['file_extensions']['other']
+
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
     logger.debug("list_of_dirs: {}".format(list_of_dirs))
@@ -281,25 +281,37 @@ def clean_up(list_of_dirs):
                 shutil.rmtree(del_target)
 
 
+def read_config():
+    config = configparser.ConfigParser()
+    cfg_file = 'config.ini'
+    if not os.path.exists(cfg_file):
+        shutil.copy('config_example.ini', 'config.ini')
+
+    config.read('config.ini')
+    return config
+
+
 if __name__ == "__main__":
-    logging_config('DEBUG')
+    config = read_config()
+
+    logging_config(
+        log_level=config['options']['log_level'],
+        log_dir=config['folders']['log_dir'])
     logger = logging.getLogger('rasmf')
 
-
     # Create the movie and tv folders should they not exist
-    for d in [movie_dir, tv_dir]:
+    for d in [config['folders']['movie_dir'], config['folders']['tv_dir']]:
         if not os.path.exists(d):
             os.makedirs(d)
 
-    for rootdir, dirs, files in os.walk(in_dir, topdown=False):
+    for rootdir, dirs, files in os.walk(config['folders']['incoming_dir'],
+                                        topdown=False):
         for full_filename in files:
             # get lowercase file extension
             file_extension = os.path.splitext(full_filename)[1]
             file_extension = file_extension.replace('.', '').lower()
 
-            # import ipdb; ipdb.set_trace()
-
-            if file_extension in video_file_extensions:
+            if file_extension in config['file_extensions']['video']:
                 video_file(rootdir, full_filename, file_extension)
 
     # Last step clean up the incoming directory
