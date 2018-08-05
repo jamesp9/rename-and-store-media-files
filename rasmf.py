@@ -17,6 +17,7 @@ import logging.handlers
 import os
 import re
 import shutil
+import sys
 
 clean_up_list = []
 
@@ -305,11 +306,21 @@ def clean_up(config, list_of_dirs):
                 shutil.rmtree(del_target)
 
 
-def read_config(config_fn='config.ini'):
+def read_config(config_fn='config.ini', example_config_fn='config_example.ini'):
     """
     Read the config.ini file otherwise pass a different config filename.
     Expects user to create a config file based off the template config.
     """
+    logger = logging.getLogger('rasmf')
+
+    if not os.path.exists(config_fn):
+        logger.error('{0} Does not exist'.format(config_fn))
+        logger.warning('Copying {0} ==> {1}'.format(example_config_fn, config_fn))
+        shutil.copy(example_config_fn, config_fn)
+        logger.warning('NOTE: You must modify {0} before re-running.'.format(config_fn))
+        logger.warning('Exiting.....')
+        sys.exit(1)
+
     config = configparser.ConfigParser()
 
     config.read(config_fn)
