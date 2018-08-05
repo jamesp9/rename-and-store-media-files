@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-Rename video files formats to somthing sensible (i.e. removing whitespaces
-and brackets) and then store files in a preferred location.
-In preparation for Kodi(XBMC) to scrape the files and add to library.
+Rename filenames of video format files to clean them up by removing whitespace
+and brackets and characters that may cause problems in the shell.
+Then store files in a preferred location.
+Can be used with Kodi(XBMC) before it scrapes the files and adds content to
+library.
+
+See Kodi Wiki for naming for video files
+http://kodi.wiki/view/Naming_video_files/TV_shows
 """
-# See Kodi Wiki for naming for video files
-# http://kodi.wiki/view/Naming_video_files/TV_shows
 
 import configparser
-import os
-import shutil
-import re
+import inspect
 import logging
 import logging.handlers
-import inspect
+import os
+import re
+import shutil
 
 clean_up_list = []
 
@@ -54,9 +57,9 @@ def function_name():
 
 def sanitise_string(fname):
     """
-    Sanatise a string by removing brackets and using a preferred seperator
+    Sanitise a string by removing brackets and using a preferred separator
     (e.g. period, underscore or space)
-    Currently only returns a string with period as the seperator.
+    Currently only returns a string with period as the separator.
     """
 
     character_list = [' ', '[', ']', '(', ')', "'", '&', '-.', '..']
@@ -128,7 +131,11 @@ def tv_show_name_season(sname, fname):
 
 
 def video_file(rootdir, full_filename, file_extension):
+    """
+    """
     global clean_up_list
+    logger = logging.getLogger('rasmf')
+
     config = read_config()
     movie_dir = config['folders']['movie_dir']
     tv_dir = config['folders']['tv_dir']
@@ -198,7 +205,7 @@ def process_movie_file(source_dir, source_filename,
     logger = logging.getLogger('rasmf')
     logger.debug("{0} {1} {0}".format('=' * 20, function_name(), ))
 
-    movie_filename = sanitise_string(full_filename)
+    movie_filename = sanitise_string(source_filename)
     movie_filename = split_on_year(movie_filename)
     movie_filename = movie_filename.title() + '.' + file_extension
 
@@ -219,12 +226,11 @@ def process_movie_file(source_dir, source_filename,
         return None
 
 
-def clean_up(list_of_dirs):
+def clean_up(config, list_of_dirs):
     """
     This function removes any empty directories or directories with unwanted
     files left behind.
     """
-    config = read_config()
     in_dir = config['folders']['incoming_dir']
     video_file_extensions = config['file_extensions']['video']
     audio_file_extensions = config['file_extensions']['audio']
@@ -236,26 +242,22 @@ def clean_up(list_of_dirs):
     logger.debug("list_of_dirs: {}".format(list_of_dirs))
 
     # Remove duplicates from list
-    clean_list = []
-    for item in list_of_dirs:
-        if item not in clean_list:
-            clean_list.append(item)
-
+    clean_list = list(set(list_of_dirs))
     logger.debug("clean_list: {}".format(clean_list))
 
-    for rel_dir in clean_list:
-        logger.info("Relative directory: {}".format(rel_dir))
-        if rel_dir != '':
-            del_target = os.path.normpath(os.path.join(in_dir, rel_dir))
+    for first_level_dir in clean_list:
+        logger.info("First level directory: {}".format(first_level_dir))
+        if first_level_dir:
+            del_target = os.path.normpath(os.path.join(in_dir, first_level_dir))
 
-        delete_directory = False
+        dir_can_be_deleted = False
 
         dir_listing = os.listdir(del_target)
         if len(dir_listing) == 0:
             logger.info(" Empty directory: {}".format(del_target))
-            delete_directory = True
+            dir_can_be_deleted = True
         else:
-            # check this dir for files
+            # Check this dir for files
             for rootdir, dirs, files in os.walk(del_target, topdown=False):
                 logger.debug("{} {} {}".format(rootdir, dirs, files))
                 if files:
@@ -265,39 +267,41 @@ def clean_up(list_of_dirs):
                             full_filename))
                         filename, file_extension = os.path.splitext(
                             full_filename.lower())
-                        # skip known filetypes that still exist, just in case
+                        # Skip known filetypes that still exist, just in case
                         if (file_extension in video_file_extensions or
                                 file_extension in audio_file_extensions or
                                 file_extension in doc_extensions or
                                 file_extension in other_extensions):
-                            delete_directory = False
+                            dir_can_be_deleted = False
                 else:
-                    delete_directory = True
+                    dir_can_be_deleted = True
 
-        if delete_directory:
+        if dir_can_be_deleted:
             if os.path.exists(del_target):
                 logger.info(" Removing directory: {}".format(del_target))
-                # delete dir with unknown file types
                 shutil.rmtree(del_target)
 
 
-def read_config():
+def read_config(config_fn='config.ini'):
+    """
+    Read the config.ini file otherwise pass a different config filename.
+    Expects user to create a config file based off the template config.
+    """
     config = configparser.ConfigParser()
-    cfg_file = 'config.ini'
-    if not os.path.exists(cfg_file):
-        shutil.copy('config_example.ini', 'config.ini')
 
-    config.read('config.ini')
+    config.read(config_fn)
     return config
 
 
-if __name__ == "__main__":
+def main():
+    """
+    """
     config = read_config()
 
     logging_config(
         log_level=config['options']['log_level'],
         log_dir=config['folders']['log_dir'])
-    logger = logging.getLogger('rasmf')
+    # logger = logging.getLogger('rasmf')
 
     # Create the movie and tv folders should they not exist
     for d in [config['folders']['movie_dir'], config['folders']['tv_dir']]:
@@ -315,4 +319,8 @@ if __name__ == "__main__":
                 video_file(rootdir, full_filename, file_extension)
 
     # Last step clean up the incoming directory
-    clean_up(clean_up_list)
+    clean_up(config, clean_up_list)
+
+
+if __name__ == "__main__":
+    main()

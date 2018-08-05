@@ -17,29 +17,53 @@ def whoami():
 
 class TestRASMF(unittest.TestCase):
 
-    def setUp(self):
-        if platform.system() == 'Windows':
-            self.media_dir = os.path.join('D:\\', 'tmp', 'rasmf')
-        else:
-            self.media_dir = '/tmp/rasmf'
+    test_config_fn = 'config_test.ini'
 
-        self.in_dir = os.path.join(self.media_dir, 'incoming')
-        self.movie_dir = os.path.join(self.media_dir, "movies")
-        self.tv_dir = os.path.join(self.media_dir, "TV")
+    def setUp(self):
+        """
+        """
+        # Make a test config file
+        shutil.copy('config_example.ini', self.test_config_fn)
+        self.config = rasmf.read_config(self.test_config_fn)
+
+        # Modify the config to use testing paths
+        if platform.system() == 'Windows':
+            base_dir = os.path.join('C:\\', 'tmp', 'rasmf')
+        else:
+            base_dir = '/tmp/rasmf'
+
+        self.config['folders']['incoming_dir'] = os.path.join(
+            base_dir, 'incoming')
+        self.config['folders']['media_dir'] = os.path.join(base_dir, 'media')
+        self.config['folders']['movie_dir'] = os.path.join(
+            base_dir, 'media', 'movie')
+        self.config['folders']['tv_dir'] = os.path.join(
+            base_dir, 'media', 'tv')
+        self.config['folders']['log_dir'] = os.path.join(base_dir, 'log')
+
+        self.in_dir = self.config['folders']['incoming_dir']
+        self.media_dir = self.config['folders']['media_dir']
+        self.movie_dir = self.config['folders']['movie_dir']
+        self.tv_dir = self.config['folders']['tv_dir']
+
+        # Write the config as rasmf will read config from here.
+        with open(self.test_config_fn, 'w') as configfile:
+            self.config.write(configfile)
 
         # Make sure the test dir is clean
-        if os.path.exists(self.media_dir):
-            shutil.rmtree(self.media_dir)
+        if os.path.exists(base_dir):
+            shutil.rmtree(base_dir)
 
-        os.makedirs(self.in_dir)
-        os.makedirs(self.movie_dir)
-        os.makedirs(self.tv_dir)
+        for folder in self.config['folders'].keys():
+            os.makedirs(self.config['folders'][folder])
 
-    # MOVIE
     def test_sanitise_string_movie(self):
+        """
+        Test Sanitisation of a movie filename.
+        """
         test_data = [
             'barbaric string of junk_2011-dvdrip.xvid-somedude[www.example.com]',
-            'the.title.2006.phatdisc.eng-somechick(www.example.com)',
+            'the.title.2006.phatdisc.eng-thatchick(www.example.com)',
             'noname',
             """my.test.movie (2001) file.has[bracket's & parnthesis]""",
         ]
@@ -47,7 +71,7 @@ class TestRASMF(unittest.TestCase):
         observed = []
         expected = [
             'barbaric.string.of.junk_2011-dvdrip.xvid-somedude.www.example.com',
-            'the.title.2006.phatdisc.eng-somechick.www.example.com',
+            'the.title.2006.phatdisc.eng-thatchick.www.example.com',
             'noname',
             'my.test.movie.2001.file.has.bracket.s.and.parnthesis',
         ]
@@ -61,7 +85,7 @@ class TestRASMF(unittest.TestCase):
     def test_split_on_year_movie(self):
         test_data = [
             'barbaric.string.of.junk_2011-dvdrip.xvid-somedude.www.example.com',
-            'the.title-2006.phatdisc.eng-somechick.www.example.com',
+            'the.title-2006.phatdisc.eng-thatchick.www.example.com',
             'noname',
             'my.test.movie.2001.file.has.bracket.s.and.parnthesis',
             '1984-1984',
@@ -266,7 +290,7 @@ class TestRASMF(unittest.TestCase):
                 file_extension = os.path.splitext(full_filename)[1]
                 file_extension = file_extension.replace('.', '').lower()
 
-                if file_extension in rasmf.video_file_extensions:
+                if file_extension in self.config['file_extensions']['video']:
                     # Is it a TV show
                     if re.search(r'[sS][0-9]+[eE][0-9]+', full_filename):
                         rasmf.process_tv_show_file(
@@ -282,6 +306,8 @@ class TestRASMF(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_clean_up_tv(self):
+        """
+        """
         logger = logging.getLogger('rasmf')
         test_data = [
             ('Empty.Folder.Tv.Show-S01', ''),
@@ -292,8 +318,6 @@ class TestRASMF(unittest.TestCase):
         ]
         test_list = [
             'Empty.Folder.Tv.Show-S01',
-            'Empty.Folder.Tv.Show-S01',
-            'Empty.Folder.Tv.Show-S01',
             'Empty.Folder.Tv.Show-S02',
             'Folder With A File-S01',
             'More Than one dir deep', ]
@@ -301,16 +325,18 @@ class TestRASMF(unittest.TestCase):
         observed = []
         expected = ['Folder With A File-S01', ]
 
-        # Create test files
-        for p1, fn in test_data:
-            path = os.path.join(self.in_dir, p1)
-            os.makedirs(path, exist_ok=True)
-            pathfile = os.path.join(path, fn)
-            if not os.path.isdir(pathfile):
-                logger.debug("Writing file: {}".format(pathfile))
-                with open(os.path.join(path, fn), 'w') as fo:
-                    fo.write(p1 + fn)
-        rasmf.clean_up(test_list)
+        # Create test directories and files
+        for path_1, filename in test_data:
+            abs_path = os.path.join(self.in_dir, path_1)
+            os.makedirs(abs_path, exist_ok=True)
+
+            if filename:
+                abs_filename_path = os.path.join(abs_path, filename)
+                logger.debug("Writing file: {}".format(abs_filename_path))
+                with open(os.path.join(abs_path, filename), 'w') as fo:
+                    fo.write(path_1 + filename)
+
+        rasmf.clean_up(self.config, test_list)
 
         for incoming in os.listdir(self.in_dir):
             logger.debug("Observed: {}".format(incoming))
@@ -325,6 +351,7 @@ class TestRASMF(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.media_dir)
+        os.remove(self.test_config_fn)
 
 
 if __name__ == "__main__":
