@@ -26,6 +26,9 @@ def pause():
 
 
 def logging_config(log_level='INFO', log_dir=None):
+    """
+    Configure logging, setup a file handler and a console handler.
+    """
     if not log_dir:
         log_dir = os.path.join(os.path.expanduser('~'), 'log')
     logfile = os.path.join(log_dir, 'rasmf.log')
@@ -36,22 +39,38 @@ def logging_config(log_level='INFO', log_dir=None):
     # Set the logger based on namespace and minimum log level
     logger = logging.getLogger('rasmf')
     logger.setLevel(logging.getLevelName(log_level))
-    # FileHandler with Timed Rotating logs and set it's minimum log level
-    handler = logging.handlers.TimedRotatingFileHandler(
-        logfile, when='midnight')
-    handler.setLevel(logging.getLevelName(log_level))
-    # Create log formatter
-    formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
-    handler.setFormatter(formatter)
 
-    logger.addHandler(handler)
+    # FileHandler with Timed Rotating logs and set it's minimum log level
+    file_handler = logging.handlers.TimedRotatingFileHandler(
+        logfile, when='midnight')
+    file_handler.setLevel(logging.getLevelName(log_level))
+
+    # Create console handler with a higher log level
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Create file handler formatter
+    file_formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
+    file_handler.setFormatter(file_formatter)
+
+    # Create console handler formatter
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
 
 
 def lower_splitext(filename):
+    """
+    Returns a tuple of filename and extension in lowercase.
+    """
     return os.path.splitext(filename.lower())
 
 
 def function_name():
+    """
+    """
     return inspect.stack()[1][3]  # get name of current function
 
 
@@ -132,8 +151,10 @@ def tv_show_name_season(sname, fname):
 
 def video_file(rootdir, full_filename, file_extension):
     """
+    Determine if the video file is a TV show or movie by applying some regexs.
     """
     global clean_up_list
+
     logger = logging.getLogger('rasmf')
 
     config = read_config()
@@ -161,6 +182,8 @@ def video_file(rootdir, full_filename, file_extension):
 
 
 def process_tv_show_file(source_dir, source_filename, base_tv_dir):
+    """
+    """
     config = read_config()
     in_dir = config['folders']['incoming_dir']
 
@@ -187,7 +210,7 @@ def process_tv_show_file(source_dir, source_filename, base_tv_dir):
 
     try:
         shutil.move(source_path, target_path)
-        logger.info("Moving:{0} => {1}".format(source_path, target_path))
+        logger.info("TV: {0}".format(target_path))
         return first_relpath
     except OSError as msg:
         logger.error("{}: Unable to move {} to {}".format(
@@ -216,7 +239,7 @@ def process_movie_file(source_dir, source_filename,
 
     try:
         shutil.move(source_path, target_path)
-        logger.info("Moving:{0} => {1}".format(source_path, target_path))
+        logger.info("Movie: {0}".format(target_path))
         return first_relpath
     except OSError as msg:
         logger.error("{}: Unable to move {} to {}".format(
